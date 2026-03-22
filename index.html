@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gravitas — Simulador Gravitacional</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<!-- ── TITLE ── -->
+<div id="title-panel">
+  <h1>GRAVITAS</h1>
+  <div class="sub">simulador gravitacional · velocity verlet</div>
+</div>
+
+<!-- ── STATS ── -->
+<div id="stats-panel">
+  <div class="stat-row">
+    <span class="stat-label">corpos</span>
+    <span class="stat-val" id="stat-count">0</span>
+  </div>
+  <div class="stat-row">
+    <span class="stat-label">fps</span>
+    <span class="stat-val" id="stat-fps">—</span>
+  </div>
+  <div class="stat-row">
+    <span class="stat-label">zoom</span>
+    <span class="stat-val" id="stat-zoom">100%</span>
+  </div>
+  <div class="stat-sep"></div>
+  <div class="stat-row">
+    <span class="stat-label">E total</span>
+    <span class="stat-val" id="stat-energy">—</span>
+  </div>
+  <div class="stat-row">
+    <span class="stat-label">E cinética</span>
+    <span class="stat-val" id="stat-ke">—</span>
+  </div>
+  <div class="stat-row">
+    <span class="stat-label">E potencial</span>
+    <span class="stat-val" id="stat-pe">—</span>
+  </div>
+  <div class="stat-row">
+    <span class="stat-label">mom. angular</span>
+    <span class="stat-val" id="stat-am">—</span>
+  </div>
+</div>
+
+<!-- ── SELECTED PLANET ── -->
+<div id="sel-panel">
+  <div id="sel-name">—</div>
+  <div class="sel-field">
+    <span class="lbl">massa</span>
+    <span class="val" id="sel-mass">—</span>
+  </div>
+  <div class="sel-field">
+    <span class="lbl">velocidade</span>
+    <span class="val" id="sel-speed">—</span>
+  </div>
+  <div class="sel-field">
+    <span class="lbl">posição</span>
+    <span class="val" id="sel-pos">—</span>
+  </div>
+  <div class="sel-field">
+    <span class="lbl">período orbital</span>
+    <span class="val" id="sel-orbit">—</span>
+  </div>
+  <button id="sel-del">deletar</button>
+</div>
+
+<!-- ── BOTTOM CONTROLS ── -->
+<div id="bottom-panel">
+
+  <!-- Create planet -->
+  <div class="ctrl-group">
+    <label>novo corpo</label>
+    <div class="row">
+      <input type="color" id="ctrl-color" value="#c8ff00">
+      <label class="star-check"><input type="checkbox" id="ctrl-star"> estrela</label>
+    </div>
+  </div>
+
+  <div class="ctrl-group">
+    <label>massa &nbsp;<span class="val" id="lbl-mass">30</span></label>
+    <input type="range" id="ctrl-mass" min="1" max="300" value="30"
+      oninput="document.getElementById('lbl-mass').textContent=this.value">
+  </div>
+
+  <div class="ctrl-group">
+    <label>velocidade &nbsp;<span class="val" id="lbl-speed">3.0</span></label>
+    <input type="range" id="ctrl-speed" min="0" max="20" step="0.1" value="3"
+      oninput="document.getElementById('lbl-speed').textContent=parseFloat(this.value).toFixed(1)">
+  </div>
+
+  <div class="vdiv"></div>
+
+  <!-- Simulation -->
+  <div class="ctrl-group">
+    <label>tempo &nbsp;<span class="val" id="lbl-timescale">1.0×</span></label>
+    <input type="range" id="ctrl-timescale" min="0.05" max="5" step="0.05" value="1">
+  </div>
+
+  <div class="ctrl-group">
+    <label>rastro &nbsp;<span class="val" id="lbl-trail">180</span></label>
+    <input type="range" id="ctrl-trail" min="20" max="500" value="180">
+  </div>
+
+  <div class="ctrl-group">
+    <label>sub-steps &nbsp;<span class="val" id="lbl-substeps">4</span></label>
+    <input type="range" id="ctrl-substeps" min="1" max="16" step="1" value="4">
+  </div>
+
+  <div class="vdiv"></div>
+
+  <!-- Toggles -->
+  <div class="toggle-group">
+    <div class="lbl">visualizar</div>
+    <div class="btn-row">
+      <button class="btn" id="tog-velocity" title="(V)">vel</button>
+      <button class="btn" id="tog-force"    title="(F)">força</button>
+      <button class="btn" id="tog-orbits"   title="(O)">órbitas</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="tog-grid"     title="(G)">grid</button>
+      <button class="btn" id="tog-com"      title="(C)">C.M.</button>
+      <button class="btn" id="tog-names"    title="(N)">nomes</button>
+    </div>
+  </div>
+
+  <div class="vdiv"></div>
+
+  <!-- Presets -->
+  <div class="preset-group">
+    <div class="lbl">presets</div>
+    <div class="btn-row">
+      <button class="btn accent" data-preset="solar">solar</button>
+      <button class="btn accent" data-preset="binary">binário</button>
+      <button class="btn accent" data-preset="figure8">fig-8</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn accent" data-preset="rings">anéis</button>
+      <button class="btn accent" data-preset="galaxy">galáxias</button>
+    </div>
+  </div>
+
+  <div class="vdiv"></div>
+
+  <!-- Actions -->
+  <div class="btn-group">
+    <div class="btn-row">
+      <button class="btn" id="btn-pause">⏸</button>
+      <button class="btn" id="btn-follow" title="seguir centro de massa">seguir C.M.</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="btn-resetview">reset view</button>
+      <button class="btn danger" id="btn-clear">limpar</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── HINT ── -->
+<div id="hint">
+  arraste para criar um planeta<br>
+  <span style="color:#333;font-size:9px">scroll = zoom &nbsp;·&nbsp; botão direito = mover câmera</span>
+</div>
+
+<!-- ── SHORTCUTS ── -->
+<div id="shortcuts">
+  <kbd>V</kbd> vetores vel &nbsp;<br>
+  <kbd>F</kbd> vetores força &nbsp;<br>
+  <kbd>O</kbd> órbitas &nbsp;<br>
+  <kbd>G</kbd> grid &nbsp;<br>
+  <kbd>N</kbd> nomes &nbsp;<br>
+  <kbd>C</kbd> centro de massa &nbsp;<br>
+  <kbd>R</kbd> reset câmera &nbsp;<br>
+  <kbd>Space</kbd> pausar &nbsp;<br>
+  <kbd>Del</kbd> deletar selecionado &nbsp;
+</div>
+
+<!-- ── SCRIPTS ── -->
+<script src="js/vec2.js"></script>
+<script src="js/planet.js"></script>
+<script src="js/physics.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/presets.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>
